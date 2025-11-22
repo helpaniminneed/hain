@@ -6,16 +6,58 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Navbar from "@/components/Navbar";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const CreateCampaign = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [category, setCategory] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    toast({
-      title: "Campaign Created!",
-      description: "Your campaign has been submitted and is now live.",
-    });
+    setIsSubmitting(true);
+
+    const formData = new FormData(e.currentTarget);
+    
+    try {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .insert([{
+          title: formData.get('title') as string,
+          description: formData.get('description') as string,
+          full_story: formData.get('full_story') as string,
+          category: category,
+          goal: parseFloat(formData.get('goal') as string),
+          animal_name: formData.get('animal') as string || null,
+          location: formData.get('location') as string || null,
+          image_url: formData.get('image_url') as string,
+          paypal_email: formData.get('paypal_email') as string,
+          contact_email: formData.get('contact_email') as string,
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Campaign Created!",
+        description: "Your campaign has been submitted and is now live.",
+      });
+
+      navigate(`/campaign/${data.id}`);
+    } catch (error) {
+      console.error('Error creating campaign:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create campaign. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -48,6 +90,7 @@ const CreateCampaign = () => {
                   <Label htmlFor="title" className="text-base">Campaign Title *</Label>
                   <Input 
                     id="title" 
+                    name="title"
                     placeholder="e.g., Help Luna Fight Cancer"
                     className="h-12 text-base"
                     required
@@ -56,17 +99,17 @@ const CreateCampaign = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="category" className="text-base">Category *</Label>
-                  <Select required>
+                  <Select required value={category} onValueChange={setCategory}>
                     <SelectTrigger id="category" className="h-12 text-base">
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="medical">Medical Treatment</SelectItem>
-                      <SelectItem value="emergency">Emergency Care</SelectItem>
-                      <SelectItem value="rescue">Rescue Operation</SelectItem>
-                      <SelectItem value="shelter">Shelter & Housing</SelectItem>
-                      <SelectItem value="wildlife">Wildlife Rehabilitation</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="Medical">Medical Treatment</SelectItem>
+                      <SelectItem value="Emergency">Emergency Care</SelectItem>
+                      <SelectItem value="Rescue">Rescue Operation</SelectItem>
+                      <SelectItem value="Shelter">Shelter & Housing</SelectItem>
+                      <SelectItem value="Wildlife">Wildlife Rehabilitation</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -75,7 +118,10 @@ const CreateCampaign = () => {
                   <Label htmlFor="goal" className="text-base">Funding Goal (USD) *</Label>
                   <Input 
                     id="goal" 
+                    name="goal"
                     type="number"
+                    step="0.01"
+                    min="1"
                     placeholder="5000"
                     className="h-12 text-base"
                     required
@@ -86,42 +132,78 @@ const CreateCampaign = () => {
                   <Label htmlFor="animal" className="text-base">Animal Name</Label>
                   <Input 
                     id="animal" 
+                    name="animal"
                     placeholder="e.g., Luna"
                     className="h-12 text-base"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description" className="text-base">Campaign Story *</Label>
+                  <Label htmlFor="location" className="text-base">Location</Label>
+                  <Input 
+                    id="location" 
+                    name="location"
+                    placeholder="e.g., Portland, OR"
+                    className="h-12 text-base"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description" className="text-base">Short Description *</Label>
                   <Textarea 
                     id="description"
-                    placeholder="Tell us about the animal and why they need help. Include details about their condition, treatment needed, and how the funds will be used."
+                    name="description"
+                    placeholder="A brief summary (1-2 sentences) about the animal and what they need."
+                    className="min-h-[100px] text-base resize-none"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="full_story" className="text-base">Full Campaign Story</Label>
+                  <Textarea 
+                    id="full_story"
+                    name="full_story"
+                    placeholder="Tell the complete story. Include details about the animal's condition, treatment needed, and how the funds will be used. A compelling story helps donors connect with your cause."
                     className="min-h-[200px] text-base resize-none"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="image_url" className="text-base">Campaign Image URL *</Label>
+                  <Input 
+                    id="image_url" 
+                    name="image_url"
+                    type="url"
+                    placeholder="https://example.com/image.jpg"
+                    className="h-12 text-base"
                     required
                   />
                   <p className="text-sm text-muted-foreground">
-                    A compelling story helps donors connect with your cause
+                    Enter a URL to a photo of the animal
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="image" className="text-base">Campaign Image *</Label>
+                  <Label htmlFor="paypal_email" className="text-base">PayPal Email *</Label>
                   <Input 
-                    id="image" 
-                    type="file"
-                    accept="image/*"
-                    className="h-12 text-base file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                    id="paypal_email" 
+                    name="paypal_email"
+                    type="email"
+                    placeholder="your.paypal@example.com"
+                    className="h-12 text-base"
                     required
                   />
                   <p className="text-sm text-muted-foreground">
-                    Upload a clear photo of the animal (max 5MB)
+                    Donors will be directed to donate via this PayPal email
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="contact" className="text-base">Contact Email *</Label>
+                  <Label htmlFor="contact_email" className="text-base">Contact Email *</Label>
                   <Input 
-                    id="contact" 
+                    id="contact_email" 
+                    name="contact_email"
                     type="email"
                     placeholder="your.email@example.com"
                     className="h-12 text-base"
@@ -130,8 +212,13 @@ const CreateCampaign = () => {
                 </div>
 
                 <div className="pt-4">
-                  <Button type="submit" size="lg" className="w-full text-base font-semibold h-14">
-                    Create Campaign
+                  <Button 
+                    type="submit" 
+                    size="lg" 
+                    className="w-full text-base font-semibold h-14"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Creating Campaign...' : 'Create Campaign'}
                   </Button>
                 </div>
               </form>
@@ -146,8 +233,9 @@ const CreateCampaign = () => {
             <CardContent className="space-y-3 text-muted-foreground">
               <p>• All campaigns must be animal-related</p>
               <p>• Be honest and transparent about how funds will be used</p>
-              <p>• Provide regular updates to your donors</p>
-              <p>• Respond to questions and comments promptly</p>
+              <p>• Donations go directly to your PayPal account</p>
+              <p>• Make sure your PayPal email is correct</p>
+              <p>• Update donors regularly about the animal's progress</p>
             </CardContent>
           </Card>
         </div>

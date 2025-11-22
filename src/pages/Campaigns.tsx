@@ -4,64 +4,23 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Campaigns = () => {
-  const campaigns = [
-    {
-      id: 1,
-      title: "Help Luna Fight Cancer",
-      description: "Luna, a 5-year-old golden retriever, needs urgent treatment for lymphoma.",
-      raised: 3500,
-      goal: 8000,
-      image: "https://images.unsplash.com/photo-1633722715463-d30f4f325e24?w=800&auto=format&fit=crop",
-      category: "Medical",
+  const { data: campaigns, isLoading } = useQuery({
+    queryKey: ['campaigns'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
     },
-    {
-      id: 2,
-      title: "Rescue Street Cats",
-      description: "Fund medical care and shelter for abandoned cats in our community.",
-      raised: 2100,
-      goal: 5000,
-      image: "https://images.unsplash.com/photo-1574158622682-e40e69881006?w=800&auto=format&fit=crop",
-      category: "Rescue",
-    },
-    {
-      id: 3,
-      title: "Save Max's Life",
-      description: "Max was hit by a car and needs emergency surgery to walk again.",
-      raised: 5800,
-      goal: 6500,
-      image: "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800&auto=format&fit=crop",
-      category: "Emergency",
-    },
-    {
-      id: 4,
-      title: "Sanctuary for Retired Horses",
-      description: "Help us build a sanctuary for horses retired from racing and work.",
-      raised: 12000,
-      goal: 25000,
-      image: "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?w=800&auto=format&fit=crop",
-      category: "Shelter",
-    },
-    {
-      id: 5,
-      title: "Wildlife Rehabilitation Center",
-      description: "Support our center caring for injured wildlife and preparing them for release.",
-      raised: 8500,
-      goal: 15000,
-      image: "https://images.unsplash.com/photo-1535930891776-0c2dfb7fda1a?w=800&auto=format&fit=crop",
-      category: "Wildlife",
-    },
-    {
-      id: 6,
-      title: "Bella's Kidney Disease Treatment",
-      description: "Bella is a 7-year-old cat who needs ongoing treatment for chronic kidney disease.",
-      raised: 1200,
-      goal: 4000,
-      image: "https://images.unsplash.com/photo-1543852786-1cf6624b9987?w=800&auto=format&fit=crop",
-      category: "Medical",
-    },
-  ];
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -95,14 +54,27 @@ const Campaigns = () => {
 
           {/* Campaigns Grid */}
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {campaigns.map((campaign) => {
-              const percentage = Math.round((campaign.raised / campaign.goal) * 100);
+            {isLoading ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <Card key={i} className="overflow-hidden">
+                  <Skeleton className="w-full h-56" />
+                  <CardHeader>
+                    <Skeleton className="h-6 w-3/4" />
+                    <Skeleton className="h-4 w-full" />
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-3 w-full" />
+                  </CardContent>
+                </Card>
+              ))
+            ) : campaigns?.map((campaign) => {
+              const percentage = Math.round((Number(campaign.raised) / Number(campaign.goal)) * 100);
               
               return (
                 <Card key={campaign.id} className="overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-xl group">
                   <div className="relative overflow-hidden">
                     <img 
-                      src={campaign.image} 
+                      src={campaign.image_url} 
                       alt={campaign.title}
                       className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500"
                     />
@@ -114,18 +86,18 @@ const Campaigns = () => {
                   </div>
                   <CardHeader>
                     <CardTitle className="text-xl">{campaign.title}</CardTitle>
-                    <CardDescription className="text-base">{campaign.description}</CardDescription>
+                    <CardDescription className="text-base line-clamp-2">{campaign.description}</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
                       <div className="flex justify-between text-sm mb-2">
-                        <span className="font-semibold text-primary">${campaign.raised.toLocaleString()} raised</span>
-                        <span className="text-muted-foreground">${campaign.goal.toLocaleString()} goal</span>
+                        <span className="font-semibold text-primary">${Number(campaign.raised).toLocaleString()} raised</span>
+                        <span className="text-muted-foreground">${Number(campaign.goal).toLocaleString()} goal</span>
                       </div>
                       <div className="h-3 bg-muted rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-500"
-                          style={{ width: `${percentage}%` }}
+                          style={{ width: `${Math.min(percentage, 100)}%` }}
                         />
                       </div>
                       <p className="text-sm text-muted-foreground mt-2">{percentage}% funded</p>
