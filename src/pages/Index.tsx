@@ -7,8 +7,11 @@ import heroImage from "@/assets/hero-donkey.jpg";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useEffect, useState } from "react";
 
 const Index = () => {
+  const [campaignCount, setCampaignCount] = useState<number>(0);
+
   const { data: featuredCampaigns, isLoading } = useQuery({
     queryKey: ['featured-campaigns'],
     queryFn: async () => {
@@ -22,6 +25,41 @@ const Index = () => {
       return data;
     },
   });
+
+  useEffect(() => {
+    // Get initial count
+    const fetchCount = async () => {
+      const { count, error } = await supabase
+        .from('campaigns')
+        .select('*', { count: 'exact', head: true });
+      
+      if (!error && count !== null) {
+        setCampaignCount(count);
+      }
+    };
+
+    fetchCount();
+
+    // Subscribe to real-time updates
+    const channel = supabase
+      .channel('campaign-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'campaigns'
+        },
+        () => {
+          setCampaignCount(prev => prev + 1);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -67,6 +105,17 @@ const Index = () => {
                   alt="Adorable donkey" 
                   className="w-full h-full object-cover"
                 />
+              </div>
+              <div className="absolute -bottom-6 -left-6 bg-card rounded-2xl shadow-lg p-6 max-w-xs border border-border">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Heart className="h-6 w-6 text-primary fill-primary" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-2xl text-foreground">{campaignCount}</p>
+                    <p className="text-sm text-muted-foreground">Active Campaigns</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
