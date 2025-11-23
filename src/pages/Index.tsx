@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Heart, PawPrint, Target, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
-import heroImage from "@/assets/hero-animals.jpg";
+import heroImage from "@/assets/hero-donkey.jpg";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -64,20 +64,9 @@ const Index = () => {
               <div className="overflow-hidden rounded-3xl shadow-2xl">
                 <img 
                   src={heroImage} 
-                  alt="Rescued animals" 
+                  alt="Adorable donkey" 
                   className="w-full h-full object-cover"
                 />
-              </div>
-              <div className="absolute -bottom-6 -left-6 bg-card rounded-2xl shadow-lg p-6 max-w-xs border border-border">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Heart className="h-6 w-6 text-primary fill-primary" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-2xl text-foreground">1,234+</p>
-                    <p className="text-sm text-muted-foreground">Animals Helped</p>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
